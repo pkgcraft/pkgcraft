@@ -28,6 +28,8 @@ pub enum Error {
     RestrictedFetchable(Box<Fetchable>),
     #[error("restricted file: {0}")]
     RestrictedFile(Box<Uri>),
+    #[error("{cpn}: invalid ebuild: {file}: {err}")]
+    InvalidEbuild { cpn: Cpn, file: String, err: String },
     #[error("{0}")]
     InvalidValue(String),
     #[error("invalid repo: {id}: {err}")]

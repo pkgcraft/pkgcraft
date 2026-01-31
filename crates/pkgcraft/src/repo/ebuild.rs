@@ -350,36 +350,50 @@ impl EbuildRepo {
 
     /// Try to convert an ebuild file path into a Cpv.
     fn cpv_from_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv> {
+        // convert given path into relative utf8 path
         let path = path.as_ref();
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
         let relpath = Utf8Path::from_path(relpath).ok_or_else(|| {
             Error::InvalidValue(format!("invalid cpv path: {}", relpath.display()))
         })?;
-        let path_err = |s: &str| -> Error {
-            Error::InvalidValue(format!("invalid cpv path: {relpath}: {s}"))
-        };
+
+        // split path into components
         let (cat, pkg, file) = relpath
             .components()
             .map(|s| s.as_str())
             .collect_tuple()
-            .ok_or_else(|| path_err("mismatched path components"))?;
+            .ok_or_else(|| Error::InvalidValue(format!("invalid cpv path: {relpath}")))?;
+
         let cpn = Cpn::try_from((cat, pkg))?;
-        let p = file
-            .strip_suffix(".ebuild")
-            .ok_or_else(|| path_err("non-ebuild file"))?;
-        let version = p
-            .strip_prefix(cpn.package())
-            .and_then(|s| s.strip_prefix('-'));
-        let Some(version) = version else {
-            if p.contains('-') {
-                return Err(Error::InvalidValue(format!("{file}: mismatched package name")));
-            } else {
-                return Err(Error::InvalidValue(format!("{file}: missing version")));
+
+        // return invalid ebuild error for given error message
+        let invalid_ebuild = |s: &str| -> Error {
+            Error::InvalidEbuild {
+                cpn: cpn.clone(),
+                file: file.to_string(),
+                err: s.to_string(),
             }
         };
-        let version = Version::try_new(version)
-            .map_err(|_| Error::InvalidValue(format!("{file}: invalid version: {version}")))?;
-        Ok(Cpv { cpn, version })
+
+        // extract version string from file name
+        let p = file
+            .strip_suffix(".ebuild")
+            .ok_or_else(|| invalid_ebuild("non-ebuild file"))?;
+        let Some(ver) = p
+            .strip_prefix(cpn.package())
+            .and_then(|s| s.strip_prefix('-'))
+        else {
+            let err = if p.contains('-') {
+                "mismatched package name"
+            } else {
+                "missing version"
+            };
+            return Err(invalid_ebuild(err));
+        };
+
+        Version::try_new(ver)
+            .map_err(|_| invalid_ebuild(&format!("invalid version: {ver}")))
+            .map(|version| Cpv { cpn, version })
     }
 
     /// Return the set of inherited architectures sorted by name.

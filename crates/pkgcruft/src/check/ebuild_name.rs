@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
+use pkgcraft::error::Error::InvalidEbuild;
 use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{EbuildNameInvalid, EbuildVersionsEqual};
@@ -29,7 +30,11 @@ impl super::CheckRun for Check {
 
         for result in run.repo.cpvs_from_package(cpn.category(), cpn.package()) {
             match result {
-                Err(e) => EbuildNameInvalid.package(cpn).message(e).report(run),
+                Err(InvalidEbuild { cpn, file, err }) => {
+                    let err = format!("{file}: {err}");
+                    EbuildNameInvalid.package(cpn).message(err).report(run)
+                }
+                Err(e) => unreachable!("unexpected error: {e}"),
                 Ok(cpv) => {
                     let version = cpv.version().to_string();
                     cpvs.entry(cpv).or_default().push(version);
