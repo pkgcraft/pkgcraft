@@ -17,26 +17,28 @@ pub(crate) struct Command {
     format: Option<CacheFormat>,
 
     // positionals
-    /// Target repository
-    #[arg(default_value = ".", help_heading = "Arguments")]
-    repo: String,
+    /// Target repositories
+    #[arg(value_name = "REPO", default_value = ".", help_heading = "Arguments")]
+    repos: Vec<String>,
 }
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repo = Targets::new(config)?
-            .repo_targets([&self.repo])?
-            .ebuild_repo()?;
+        let repos = Targets::new(config)?
+            .repo_targets(&self.repos)?
+            .ebuild_repos()?;
 
-        let format = self.format.unwrap_or(repo.metadata().cache().format());
+        for repo in &repos {
+            let format = self.format.unwrap_or(repo.metadata().cache().format());
 
-        let cache = if let Some(path) = self.path.as_ref() {
-            format.from_path(path)
-        } else {
-            format.from_repo(&repo)
-        };
+            let cache = if let Some(path) = self.path.as_ref() {
+                format.from_path(path)
+            } else {
+                format.from_repo(repo)
+            };
 
-        cache.clean(&repo)?;
+            cache.clean(repo)?;
+        }
 
         Ok(ExitCode::SUCCESS)
     }
