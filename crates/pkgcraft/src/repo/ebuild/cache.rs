@@ -3,7 +3,7 @@ use indexmap::IndexSet;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString};
+use strum::{Display, EnumString, VariantNames};
 use tracing::error;
 
 use crate::dep::Cpv;
@@ -61,7 +61,18 @@ pub trait Cache {
 }
 
 #[derive(
-    Display, EnumString, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    Display,
+    EnumString,
+    VariantNames,
+    Default,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum CacheFormat {

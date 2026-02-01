@@ -1,20 +1,33 @@
 use std::process::ExitCode;
 
+use camino::Utf8PathBuf;
 use clap::Args;
+use clap::builder::{PossibleValuesParser, TypedValueParser};
 use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::{Cache, CacheFormat};
+use strum::VariantNames;
+
+use super::repo_caches;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Clean options")]
 pub(crate) struct Command {
     /// Custom cache path
     #[arg(short, long)]
-    path: Option<String>,
+    path: Option<Utf8PathBuf>,
 
-    /// Custom cache format
-    #[arg(long)]
-    format: Option<CacheFormat>,
+    /// Cache formats
+    #[arg(
+        short = 'F',
+        long = "format",
+        hide_possible_values = true,
+        value_name = "FORMAT[,...]",
+        value_delimiter = ',',
+        value_parser = PossibleValuesParser::new(CacheFormat::VARIANTS)
+            .map(|s| s.parse::<CacheFormat>().unwrap()),
+    )]
+    formats: Vec<CacheFormat>,
 
     // positionals
     /// Target repositories
@@ -29,15 +42,9 @@ impl Command {
             .ebuild_repos()?;
 
         for repo in &repos {
-            let format = self.format.unwrap_or(repo.metadata().cache().format());
-
-            let cache = if let Some(path) = self.path.as_ref() {
-                format.from_path(path)
-            } else {
-                format.from_repo(repo)
-            };
-
-            cache.clean(repo)?;
+            for cache in repo_caches(repo, &self.formats, self.path.as_deref())? {
+                cache.clean(repo)?;
+            }
         }
 
         Ok(ExitCode::SUCCESS)

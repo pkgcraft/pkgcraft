@@ -50,7 +50,17 @@ fn empty_repo() {
 fn bad_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("bad").unwrap();
+
+    // repo doesn't define metadata cache by default
     cmd("pk repo metadata regen")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    // force metadata cache generation
+    cmd("pk repo metadata regen -F md5-dict")
         .arg(repo)
         .assert()
         .stdout("")
