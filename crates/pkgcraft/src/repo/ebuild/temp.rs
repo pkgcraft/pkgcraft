@@ -71,6 +71,7 @@ impl EbuildRepoBuilder {
         }
 
         let config = indoc::indoc! {"
+            cache-formats = md5-dict
             manifest-hashes = BLAKE2B SHA512
             manifest-required-hashes = BLAKE2B
             thin-manifests = true
