@@ -31,7 +31,7 @@ use crate::traits::FilterLines;
 use crate::types::OrderedMap;
 
 use super::Eclass;
-use super::cache::MetadataCache;
+use super::cache::{CacheFormat, MetadataCache};
 
 mod config;
 use config::Config;
@@ -147,6 +147,7 @@ pub struct Metadata {
     arches: OnceLock<IndexSet<Arch>>,
     arches_desc: OnceLock<IndexMap<ArchStatus, IndexSet<Arch>>>,
     cache: OnceLock<MetadataCache>,
+    caches: OnceLock<IndexMap<CacheFormat, MetadataCache>>,
     categories: OnceLock<IndexSet<String>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
     licenses: OnceLock<IndexSet<String>>,
@@ -261,17 +262,27 @@ impl Metadata {
         })
     }
 
+    /// Return all metadata caches for a repo.
+    pub fn caches(&self) -> &IndexMap<CacheFormat, MetadataCache> {
+        self.caches.get_or_init(|| {
+            self.config
+                .cache_formats
+                .iter()
+                .copied()
+                .map(|format| (format, format.from_repo(&self.path)))
+                .collect()
+        })
+    }
+
+    /// Return the main metadata cache for a repo.
     pub fn cache(&self) -> &MetadataCache {
         self.cache.get_or_init(|| {
-            // TODO: support multiple cache formats?
-            let format = self
-                .config
-                .cache_formats
-                .first()
-                .copied()
-                .unwrap_or_default();
-
-            format.from_repo(&self.path)
+            self.caches()
+                .values()
+                .next()
+                .cloned()
+                // TODO: use location outside repo for default cache?
+                .unwrap_or_else(|| CacheFormat::default().from_repo(&self.path))
         })
     }
 
