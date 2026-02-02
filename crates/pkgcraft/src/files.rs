@@ -172,7 +172,7 @@ pub(crate) fn atomic_write_file<C: AsRef<[u8]>, P: AsRef<Utf8Path>>(
     let file_name = path
         .file_name()
         .ok_or_else(|| Error::IO(format!("invalid file path: {path}")))?;
-    let temp = dir.join(format!(".{file_name}.{pid}"));
+    let temp = dir.join(format!(".pkgcraft.{file_name}.{pid}"));
 
     // write to the temporary file
     fs::write(&temp, data)
