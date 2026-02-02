@@ -34,7 +34,7 @@ fn run() {
 
     // create old, temp, and extraneous files
     fs::write(path.join("cat/a-0"), "").unwrap();
-    fs::write(path.join("cat/.a-1"), "").unwrap();
+    fs::write(path.join("cat/.pkgcraft.a-1"), "").unwrap();
     fs::write(path.join("cat/.random"), "").unwrap();
     fs::write(path.join("cat/random"), "").unwrap();
 
@@ -51,13 +51,13 @@ fn run() {
     assert!(path.join("cat/b-1").exists());
     assert!(path.join("cat/b-2").exists());
     assert!(!path.join("cat/a-0").exists());
-    assert!(!path.join("cat/.a-1").exists());
-    assert!(!path.join("cat/.random").exists());
-    assert!(!path.join("cat/random").exists());
+    assert!(!path.join("cat/.pkgcraft.a-1").exists());
+    assert!(path.join("cat/.random").exists());
+    assert!(path.join("cat/random").exists());
 
     // remove pkgs and create old, temp, and extraneous files
     fs::write(path.join("cat/a-0"), "").unwrap();
-    fs::write(path.join("cat/.a-1"), "").unwrap();
+    fs::write(path.join("cat/.pkgcraft.a-1"), "").unwrap();
     fs::write(path.join("cat/.random"), "").unwrap();
     fs::write(path.join("cat/random"), "").unwrap();
     fs::remove_dir_all(repo.path().join("cat/b")).unwrap();
@@ -76,9 +76,9 @@ fn run() {
     assert!(!path.join("cat/b-1").exists());
     assert!(!path.join("cat/b-2").exists());
     assert!(!path.join("cat/a-0").exists());
-    assert!(!path.join("cat/.a-1").exists());
-    assert!(!path.join("cat/.random").exists());
-    assert!(!path.join("cat/random").exists());
+    assert!(!path.join("cat/.pkgcraft.a-1").exists());
+    assert!(path.join("cat/.random").exists());
+    assert!(path.join("cat/random").exists());
 }
 
 #[test]

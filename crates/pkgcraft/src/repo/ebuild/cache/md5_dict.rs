@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 
 use crate::Error;
 use crate::dep::Cpv;
-use crate::files::{atomic_write_file, is_file, remove_file_and_parent};
+use crate::files::{atomic_write_file, is_atomic_file, is_file, remove_file_and_parent};
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::pkg::ebuild::{Metadata, MetadataKey};
 use crate::pkg::{Package, RepoPackage};
@@ -246,8 +246,7 @@ impl Cache for Md5Dict {
             .into_iter()
             .collect();
 
-        // Remove outdated, invalid, and unrelated files as well as their parent
-        // directories if empty.
+        // remove outdated files as well as parent directories, if empty
         entries
             .into_par_iter()
             .filter_map(Result::ok)
@@ -257,13 +256,13 @@ impl Cache for Md5Dict {
                 // convert to relative path
                 let relpath = path.strip_prefix(self.path()).expect("invalid cache path");
 
-                // determine if a cache file is valid, relating to an existing pkg
-                let valid = Cpv::try_new(relpath)
-                    .ok()
-                    .map(|cpv| collection.contains(&cpv))
-                    .unwrap_or_default();
+                // determine if path is old cache file
+                let old_entry = Cpv::try_new(relpath)
+                    .map(|cpv| !collection.contains(&cpv))
+                    .unwrap_or_else(|_| is_atomic_file(relpath));
 
-                if !valid {
+                // remove old cache files
+                if old_entry {
                     remove_file_and_parent(&path).map_err(|e| {
                         Error::IO(format!("failed removing cache file: {relpath}: {e}"))
                     })?;

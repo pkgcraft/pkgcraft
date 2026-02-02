@@ -185,6 +185,13 @@ pub(crate) fn atomic_write_file<C: AsRef<[u8]>, P: AsRef<Utf8Path>>(
     Ok(())
 }
 
+/// Return true if a path's file name matches the prefix for an atomic file.
+pub(crate) fn is_atomic_file(path: &Utf8Path) -> bool {
+    path.file_name()
+        .map(|s| s.starts_with(".pkgcraft."))
+        .unwrap_or_default()
+}
+
 /// Remove a file and its parent directory if empty.
 pub(crate) fn remove_file_and_parent<P: AsRef<Path>>(path: P) -> io::Result<()> {
     let path = path.as_ref();
