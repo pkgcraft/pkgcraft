@@ -27,7 +27,7 @@ aho-corasick = "1.1.4"
 anstream = "0.6.21"
 anyhow = "1.0.100"
 camino = "1.2.2"
-clap = { version = "4.5.54", features = ["derive"] }
+clap = { version = "4.5.56", features = ["derive"] }
 clap_complete = "4.5.65"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.7"

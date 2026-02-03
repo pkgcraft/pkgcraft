@@ -37,7 +37,7 @@ harness = false
 anstream = "0.6.21"
 anyhow = "1.0.100"
 camino = "1.2.2"
-clap = { version = "4.5.54", features = ["derive", "string"] }
+clap = { version = "4.5.56", features = ["derive", "string"] }
 clap_complete = "4.5.65"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.7"
@@ -62,7 +62,7 @@ thiserror = "2.0.18"
 tracing = "0.1.44"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.22"
-tree-sitter = "0.26.3"
+tree-sitter = "0.26.5"
 url = "2.5.8"
 walkdir = "2.5.0"
 
