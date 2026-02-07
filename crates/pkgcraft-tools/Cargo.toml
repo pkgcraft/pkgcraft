@@ -25,9 +25,9 @@ network = []
 [dependencies]
 aho-corasick = "1.1.4"
 anstream = "0.6.21"
-anyhow = "1.0.100"
+anyhow = "1.0.101"
 camino = "1.2.2"
-clap = { version = "4.5.56", features = ["derive"] }
+clap = { version = "4.5.57", features = ["derive"] }
 clap_complete = "4.5.65"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.7"
@@ -41,7 +41,7 @@ num_cpus = "1.17.0"
 owo-colors = "4.2.3"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
 rayon = "1.11.0"
-reqwest = { version = "0.13.1", features = ["hickory-dns", "socks", "stream"] }
+reqwest = { version = "0.13.2", features = ["hickory-dns", "socks", "stream"] }
 strum = { version = "0.27.2", features = ["derive"] }
 tempfile = "3.24.0"
 tokio = { version = "1.49.0", features = ["full"] }

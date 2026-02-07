@@ -12,15 +12,15 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-anyhow = "1.0.100"
+anyhow = "1.0.101"
 async-stream = "0.3.6"
-clap = { version = "4.5.56", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.5.57", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.15.19", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 hyper-util = "0.1.20"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
 prost = "0.14.3"
-regex = "1.12.2"
+regex = "1.12.3"
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
 tokio = { version = "1.49", features = ["full"] }
@@ -39,7 +39,7 @@ tonic-prost-build = "0.14.3"
 
 [dev-dependencies]
 assert_cmd = "2.1.2"
-regex = "1.12.2"
+regex = "1.12.3"
 tempfile = "3.24.0"
 
 [lib]
