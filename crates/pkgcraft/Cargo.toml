@@ -23,30 +23,31 @@ test = ["dep:ctor", "dep:pretty_assertions", "scallop/test"]
 
 [dependencies]
 blake2 = "0.10.6"
-blake3 = { version = "1.8.3", features = ["traits-preview"] }
-cached = "0.56.0"
+# lock version using =digest-0.10.* until blake2 release supports =digest-0.11.*
+blake3 = { version = "=1.8.3", features = ["traits-preview"] }
+cached = "0.59.0"
 camino = { version = "1.2.2", features = ["serde1"] }
 camino-tempfile = "1.4.1"
 chic = "1.2.2"
-clap = { version = "4.5.57", features = ["derive"] }
+clap = { version = "4.6.0", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 dashmap = "6.1.0"
 digest = "0.10.7"
 enum-as-inner = "0.7.0"
 filetime = "0.2.27"
-futures = "0.3.31"
+futures = "0.3.32"
 gix = { version = "0.78.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation"] }
 glob = "0.3.3"
 hex = "0.4.3"
-indexmap = { version = "2.13.0", features = ["rayon", "serde"] }
-indicatif = "0.18.3"
+indexmap = { version = "2.13.1", features = ["rayon", "serde"] }
+indicatif = "0.18.4"
 indoc = "2.0.7"
 ipc-channel = "0.21.0"
 is_executable = "1.0.5"
 itertools = "0.14.0"
-libc = "0.2.180"
+libc = "0.2.184"
 md-5 = "0.10.6"
-nix = { version = "0.31.1", features = ["process", "user", "signal"] }
+nix = { version = "0.31.2", features = ["process", "user", "signal"] }
 num_cpus = "1.17.0"
 ordermap = { version = "1.1.0", features = ["rayon", "serde"] }
 peg = "0.8.5"
@@ -57,29 +58,29 @@ roxmltree = "0.21.1"
 rust-ini = "0.21.3"
 scallop = { path = "../scallop", version = "0.0.30" }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_with = { version = "3.16.1", default-features = false, features = ["macros"] }
+serde_with = { version = "3.18.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.9"
-strum = { version = "0.27.2", features = ["derive"] }
-tempfile = "3.24.0"
+strum = { version = "0.28.0", features = ["derive"] }
+tempfile = "3.27.0"
 thiserror = "2.0.18"
-tree-sitter = "0.26.5"
+tree-sitter = "0.26.8"
 tree-sitter-bash = "0.25.1"
-tokio = { version = "1.49.0", features = ["full"] }
-toml = "0.9.11"
+tokio = { version = "1.51.0", features = ["full"] }
+toml = "1.1.2"
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 walkdir = "2.5.0"
 
 # exported test support deps
-ctor = { version = "0.6.3", optional = true }
+ctor = { version = "0.8.0", optional = true }
 pretty_assertions = { version = "1.4.1", optional = true }
 
 [dev-dependencies]
 criterion = "0.8"
-ctor = "0.6.3"
+ctor = "0.8.0"
 scallop = { path = "../scallop", version = "0.0.30", features = ["test"] }
 serde_json = "1.0.149"
-tracing-test = "0.2.5"
+tracing-test = "0.2.6"
 pretty_assertions = { version = "1.4.1"}
 
 [[bench]]

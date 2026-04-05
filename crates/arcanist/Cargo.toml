@@ -12,35 +12,35 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-anyhow = "1.0.101"
+anyhow = "1.0.102"
 async-stream = "0.3.6"
-clap = { version = "4.5.57", default-features = false, features = ["std", "suggestions"] }
-config = { version = "0.15.19", default-features = false, features = ["toml"] }
-futures = "0.3.31"
+clap = { version = "4.6.0", default-features = false, features = ["std", "suggestions"] }
+config = { version = "0.15.22", default-features = false, features = ["toml"] }
+futures = "0.3.32"
 hyper-util = "0.1.20"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
 prost = "0.14.3"
 regex = "1.12.3"
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
-tokio = { version = "1.49", features = ["full"] }
+tokio = { version = "1.51", features = ["full"] }
 tokio-stream = { version = "0.1.18", features = ["net"] }
-tonic = { version = "0.14.3", features = ["tls-ring", "gzip"] }
-tonic-prost = "0.14.3"
+tonic = { version = "0.14.5", features = ["tls-ring", "gzip"] }
+tonic-prost = "0.14.5"
 url = "2.5.8"
 
 # pakt specific deps
 tracing = "0.1.44"
-tracing-subscriber = "0.3.22"
+tracing-subscriber = "0.3.23"
 tower = "0.5.3"
 
 [build-dependencies]
-tonic-prost-build = "0.14.3"
+tonic-prost-build = "0.14.5"
 
 [dev-dependencies]
-assert_cmd = "2.1.2"
+assert_cmd = "2.2.0"
 regex = "1.12.3"
-tempfile = "3.24.0"
+tempfile = "3.27.0"
 
 [lib]
 name = "arcanist"

@@ -34,22 +34,22 @@ name = "bench"
 harness = false
 
 [dependencies]
-anstream = "0.6.21"
-anyhow = "1.0.101"
+anstream = "1.0.0"
+anyhow = "1.0.102"
 camino = "1.2.2"
-clap = { version = "4.5.57", features = ["derive", "string"] }
-clap_complete = "4.5.65"
+clap = { version = "4.6.0", features = ["derive", "string"] }
+clap_complete = "4.6.0"
 clap-verbosity-flag = "3.0.4"
-colorchoice-clap = "1.0.7"
+colorchoice-clap = "1.0.8"
 crossbeam-channel = "0.5.15"
 crossbeam-utils = "0.8.21"
 dashmap = { version = "6.1.0", features = ["rayon", "serde"] }
-indexmap = { version = "2.13.0", features = ["rayon", "serde"] }
+indexmap = { version = "2.13.1", features = ["rayon", "serde"] }
 indoc = "2.0.7"
-inventory = "0.3.21"
+inventory = "0.3.24"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
-owo-colors = "4.2.3"
+owo-colors = "4.3.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
 rayon = "1.11.0"
 regex = "1.12.3"
@@ -57,26 +57,26 @@ scallop = { path = "../scallop", version = "0.0.30" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 strfmt = "0.2.5"
-strum = { version = "0.27.2", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.18"
 tracing = "0.1.44"
 tracing-log = "0.2.0"
-tracing-subscriber = "0.3.22"
-tree-sitter = "0.26.5"
+tracing-subscriber = "0.3.23"
+tree-sitter = "0.26.8"
 url = "2.5.8"
 walkdir = "2.5.0"
 
 # exported test support deps
-assert_cmd = { version = "2.1.2", optional = true }
+assert_cmd = { version = "2.2.0", optional = true }
 glob = { version = "0.3.3", optional = true }
 
 [dev-dependencies]
-assert_cmd = { version = "2.1.2" }
+assert_cmd = { version = "2.2.0" }
 camino-tempfile = "1.4.1"
 criterion = "0.8"
-predicates = "3.1.3"
+predicates = "3.1.4"
 pretty_assertions = "1.4.1"
-tracing-test = "0.2.5"
+tracing-test = "0.2.6"
 glob = { version = "0.3.3" }
 pkgcraft = { path = "../pkgcraft", version = "0.0.31", features = ["test"] }
 
