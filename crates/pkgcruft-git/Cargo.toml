@@ -20,7 +20,7 @@ anstream = "1.0.0"
 anyhow = "1.0.102"
 async-stream = "0.3.6"
 camino = "1.2.2"
-clap = { version = "4.6.0", features = ["derive", "string"] }
+clap = { version = "4.6.1", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.8"
 config = { version = "0.15.22", default-features = false, features = ["toml"] }
@@ -28,7 +28,7 @@ futures = "0.3.32"
 git2 = "0.20.4"
 gix = { version = "0.78.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation"] }
 hyper-util = "0.1.20"
-indexmap = "2.13.1"
+indexmap = "2.14.0"
 indoc = "2.0.7"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
@@ -38,7 +38,7 @@ prost = "0.14.3"
 regex = "1.12.3"
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
-tokio = { version = "1.51", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
 tokio-stream = { version = "0.1.18", features = ["net"] }
 tonic = { version = "0.14.5", features = ["tls-ring", "gzip"] }
 tonic-prost = "0.14.5"
@@ -55,7 +55,7 @@ tower = "0.5.3"
 tonic-prost-build = "0.14.5"
 
 [dev-dependencies]
-assert_cmd = "2.2.0"
+assert_cmd = "2.2.1"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31", features = ["test"] }
 predicates = "3.1.4"
 regex = "1.12.3"
