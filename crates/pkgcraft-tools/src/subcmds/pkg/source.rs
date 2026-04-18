@@ -353,7 +353,7 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
 
     // output in ascending order if sorting is enabled
     if let Some(values) = sorted.as_mut() {
-        values.sort_by(|t1, t2| t1.mean.cmp(&t2.mean));
+        values.sort_by_key(|t1| t1.mean);
         for value in values {
             out.write(&value)?;
         }
@@ -483,7 +483,7 @@ fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
 
     // output in ascending order if sorting is enabled
     if let Some(values) = sorted.as_mut() {
-        values.sort_by(|t1, t2| t1.elapsed.cmp(&t2.elapsed));
+        values.sort_by_key(|t1| t1.elapsed);
         for value in values {
             out.write(&value)?;
         }
