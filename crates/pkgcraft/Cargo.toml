@@ -70,6 +70,7 @@ toml = "1.1.2"
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 walkdir = "2.5.0"
+winnow = { version = "1.0.2", features = ["simd"] }
 
 # exported test support deps
 ctor = { version = "0.12.0", optional = true }

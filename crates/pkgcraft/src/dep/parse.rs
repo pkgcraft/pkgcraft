@@ -460,6 +460,285 @@ pub(super) fn package_dependency(
         .map_err(|e| peg_error("invalid package dependency", s, e))
 }
 
+pub mod winnow {
+    use ::winnow::Parser;
+    use ::winnow::error::{StrContext, StrContextValue};
+
+    use super::*;
+
+    pub fn arch(input: &str) -> crate::Result<&str> {
+        Ok(parser::arch.parse(input.as_bytes()).map(|_| input)?)
+    }
+
+    pub fn category(input: &str) -> crate::Result<&str> {
+        Ok(parser::category.parse(input.as_bytes()).map(|_| input)?)
+    }
+
+    pub fn package(input: &str) -> crate::Result<&str> {
+        Ok(parser::package.parse(input.as_bytes()).map(|_| input)?)
+    }
+
+    pub fn version(input: &str) -> crate::Result<Version> {
+        Ok(parser::version.parse(input.as_bytes())?)
+    }
+
+    pub fn cpn(input: &str) -> crate::Result<Cpn> {
+        Ok(parser::cpn.parse(input.as_bytes())?)
+    }
+
+    pub fn cpv(input: &str) -> crate::Result<Cpv> {
+        Ok(parser::cpv.parse(input.as_bytes())?)
+    }
+
+    pub fn eclass_name(input: &str) -> crate::Result<&str> {
+        Ok(parser::eclass_name
+            .verify(|data: &[u8]| data != b"default")
+            .context(StrContext::Expected(StrContextValue::Description(
+                "eclass name cannot be reserved word 'default')",
+            )))
+            .parse(input.as_bytes())
+            .map(|_| input)?)
+    }
+
+    pub fn license_name(input: &str) -> crate::Result<&str> {
+        Ok(parser::license_name
+            .parse(input.as_bytes())
+            .map(|_| input)?)
+    }
+
+    pub fn slot(input: &str) -> crate::Result<Slot> {
+        Ok(parser::slot.parse(input.as_bytes())?)
+    }
+
+    mod parser {
+        use ::winnow::ascii::digit1;
+        use ::winnow::combinator::{
+            alt, dispatch, fail, not, opt, peek, repeat, separated, seq,
+        };
+        use ::winnow::error::{StrContext, StrContextValue};
+        use ::winnow::prelude::*;
+        use ::winnow::token::{any, one_of, take_while};
+
+        use super::super::*;
+
+        /// Character set for SIMD table generation.
+        #[allow(unused)]
+        #[derive(Copy, Clone)]
+        enum Base {
+            Alpha,
+            Numeric,
+            AlphaNumeric,
+            None,
+        }
+
+        /// Table generator for SIMD bitset matching.
+        const fn make_table(base: Base, extras: &[u8]) -> [bool; 256] {
+            let mut table = [false; 256];
+            let mut i = 0;
+            while i < 256 {
+                let c = i as u8;
+
+                // TODO: Switch to passing const function pointers (e.g. u8::is_ascii_alphanumeric)
+                // directly for the base parameter once they can be called in const functions by
+                // stable rust.
+                let is_base = match base {
+                    Base::Alpha => c.is_ascii_alphabetic(),
+                    Base::Numeric => c.is_ascii_digit(),
+                    Base::AlphaNumeric => c.is_ascii_alphanumeric(),
+                    Base::None => false,
+                };
+
+                if is_base {
+                    table[i] = true;
+                }
+                i += 1;
+            }
+
+            let mut j = 0;
+            while j < extras.len() {
+                table[extras[j] as usize] = true;
+                j += 1;
+            }
+            table
+        }
+
+        // bitset for characters: [A-Za-z0-9_]
+        const IS_ALPHA_UNDERSCORE: [bool; 256] = make_table(Base::AlphaNumeric, b"_");
+
+        // bitset for characters: [A-Za-z0-9_-]
+        const IS_ALPHA_UNDERSCORE_HYPHEN: [bool; 256] = make_table(Base::AlphaNumeric, b"_-");
+
+        // bitset for characters: [A-Za-z0-9_+]
+        const IS_ALPHA_UNDERSCORE_PLUS: [bool; 256] = make_table(Base::AlphaNumeric, b"_+");
+
+        // bitset for characters: [A-Za-z0-9_.-]
+        const IS_ALPHA_UNDERSCORE_DOT_HYPHEN: [bool; 256] =
+            make_table(Base::AlphaNumeric, b"_.-");
+
+        // bitset for characters: [A-Za-z0-9_+.-]
+        const IS_ALPHA_UNDERSCORE_PLUS_DOT_HYPHEN: [bool; 256] =
+            make_table(Base::AlphaNumeric, b"_+.-");
+
+        pub(super) fn arch<'i>(input: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+            (
+                one_of(|b: u8| IS_ALPHA_UNDERSCORE[b as usize]),
+                take_while(0.., |b: u8| IS_ALPHA_UNDERSCORE_HYPHEN[b as usize]),
+            )
+                .take()
+                .context(StrContext::Expected(StrContextValue::Description("arch name")))
+                .parse_next(input)
+        }
+
+        pub(super) fn category<'i>(input: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+            (
+                one_of(|b: u8| IS_ALPHA_UNDERSCORE[b as usize]),
+                take_while(0.., |b: u8| IS_ALPHA_UNDERSCORE_PLUS_DOT_HYPHEN[b as usize]),
+            )
+                .take()
+                .context(StrContext::Expected(StrContextValue::Description("category name")))
+                .parse_next(input)
+        }
+
+        pub(super) fn package<'i>(input: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+            seq! {
+                _: one_of(|b: u8| IS_ALPHA_UNDERSCORE[b as usize]),
+                _: repeat(
+                    0..,
+                    alt((
+                        one_of(|b: u8| IS_ALPHA_UNDERSCORE_PLUS[b as usize]).value(()),
+                        (not(peek(("-", version))), "-").value(()),
+                    )),
+                ).map(|_: ()| ()), // ignore accumulated match values
+            }
+            .take()
+            .context(StrContext::Expected(StrContextValue::Description("package name")))
+            .parse_next(input)
+        }
+
+        pub(super) fn cpn(input: &mut &[u8]) -> ModalResult<Cpn> {
+            (category, "/", package)
+                .map(|(cat, _sep, pkg)| {
+                    let category = unsafe { std::str::from_utf8_unchecked(cat) };
+                    let package = unsafe { std::str::from_utf8_unchecked(pkg) };
+                    Cpn {
+                        category: category.to_string(),
+                        package: package.to_string(),
+                    }
+                })
+                .context(StrContext::Expected(StrContextValue::Description("cpn")))
+                .parse_next(input)
+        }
+
+        pub(super) fn cpv(input: &mut &[u8]) -> ModalResult<Cpv> {
+            (cpn, "-", version)
+                .map(|(cpn, _sep, version)| Cpv { cpn, version })
+                .context(StrContext::Expected(StrContextValue::Description("cpv")))
+                .parse_next(input)
+        }
+
+        pub(super) fn eclass_name<'i>(input: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+            (
+                one_of(|b: u8| IS_ALPHA_UNDERSCORE[b as usize]),
+                take_while(0.., |b: u8| IS_ALPHA_UNDERSCORE_DOT_HYPHEN[b as usize]),
+            )
+                .take()
+                .context(StrContext::Expected(StrContextValue::Description("eclass name")))
+                .parse_next(input)
+        }
+
+        pub(super) fn license_name<'i>(input: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+            (
+                one_of(|b: u8| IS_ALPHA_UNDERSCORE[b as usize]),
+                take_while(0.., |b: u8| IS_ALPHA_UNDERSCORE_PLUS_DOT_HYPHEN[b as usize]),
+            )
+                .take()
+                .context(StrContext::Expected(StrContextValue::Description("license name")))
+                .parse_next(input)
+        }
+
+        pub(super) fn slot_name<'i>(input: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+            (
+                one_of(|b: u8| IS_ALPHA_UNDERSCORE[b as usize]),
+                take_while(0.., |b: u8| IS_ALPHA_UNDERSCORE_PLUS_DOT_HYPHEN[b as usize]),
+            )
+                .take()
+                .context(StrContext::Expected(StrContextValue::Description("slot name")))
+                .parse_next(input)
+        }
+
+        pub(super) fn slot(input: &mut &[u8]) -> ModalResult<Slot> {
+            (slot_name, opt(("/", slot_name)))
+                .with_taken()
+                .map(|(_sep, data)| {
+                    let name = unsafe { std::str::from_utf8_unchecked(data) };
+                    Slot { name: name.to_string() }
+                })
+                .context(StrContext::Expected(StrContextValue::Description("slot")))
+                .parse_next(input)
+        }
+
+        fn suffix(input: &mut &[u8]) -> ModalResult<SuffixKind> {
+            dispatch! { peek(any);
+                b'a' => "alpha".value(SuffixKind::Alpha),
+                b'b' => "beta".value(SuffixKind::Beta),
+                b'p' => alt(("pre".value(SuffixKind::Pre), "p".value(SuffixKind::P))),
+                b'r' => "rc".value(SuffixKind::Rc),
+                _ => fail,
+            }
+            .context(StrContext::Expected(StrContextValue::Description("suffix")))
+            .parse_next(input)
+        }
+
+        fn version_suffix(input: &mut &[u8]) -> ModalResult<Suffix> {
+            ("_", suffix, opt(number))
+                .map(|(_sep, kind, version)| Suffix { kind, version })
+                .context(StrContext::Expected(StrContextValue::Description("version suffix")))
+                .parse_next(input)
+        }
+
+        fn number(input: &mut &[u8]) -> ModalResult<Number> {
+            digit1
+                .parse_to::<u64>()
+                .with_taken()
+                .map(|(value, data)| {
+                    let raw = unsafe { std::str::from_utf8_unchecked(data) };
+                    Number { raw: raw.to_string(), value }
+                })
+                .context(StrContext::Expected(StrContextValue::Description("number")))
+                .parse_next(input)
+        }
+
+        fn revision(input: &mut &[u8]) -> ModalResult<Revision> {
+            ("-r", number)
+                .map(|(_prefix, rev)| Revision(rev))
+                .context(StrContext::Expected(StrContextValue::Description("revision")))
+                .parse_next(input)
+        }
+
+        pub(super) fn version(input: &mut &[u8]) -> ModalResult<Version> {
+            (
+                // numbers separated by '.' (e.g. 1.2.3)
+                separated(1.., number, "."),
+                // optional single lowercase letter (e.g. the 'a' in 1.2.3a)
+                opt(one_of(b'a'..=b'z').map(|b| b as char)),
+                // zero or more suffixes (e.g. _alpha1_beta2)
+                repeat(0.., version_suffix),
+                // optional revision (e.g. -r1)
+                opt(revision),
+            )
+                .map(|(numbers, letter, suffixes, revision)| Version {
+                    op: None,
+                    numbers,
+                    letter,
+                    suffixes,
+                    revision: revision.unwrap_or_default(),
+                })
+                .context(StrContext::Expected(StrContextValue::Description("version")))
+                .parse_next(input)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::eapi::{EAPI_LATEST_OFFICIAL, EAPI_PKGCRAFT, EAPIS, EAPIS_OFFICIAL};

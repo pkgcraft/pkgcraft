@@ -1,9 +1,48 @@
-use criterion::Criterion;
+use std::hint::black_box;
 
-use pkgcraft::dep::{Cpv, Dep, DepField};
+use criterion::{Criterion, Throughput};
+
+use pkgcraft::dep::{Cpv, Dep, DepField, Version, parse};
 
 pub fn bench_pkg_deps(c: &mut Criterion) {
-    c.bench_function("cpv-parse", |b| b.iter(|| Cpv::try_new(">=cat/pkg-1.2.3-r4")));
+    // category
+    {
+        let mut group = c.benchmark_group("category");
+        let input = "a_decently_long_category_name";
+        group.throughput(Throughput::Bytes(input.len() as u64));
+        group.bench_function("category-winnow-parse", |b| {
+            b.iter(|| black_box(parse::winnow::category(input)).unwrap())
+        });
+        group.bench_function("category-parse", |b| {
+            b.iter(|| black_box(parse::category(input)).unwrap())
+        });
+    }
+
+    // version
+    {
+        let mut group = c.benchmark_group("version");
+        let input = "1.2.3-r4";
+        group.throughput(Throughput::Bytes(input.len() as u64));
+        group.bench_function("version-winnow-parse", |b| {
+            b.iter(|| black_box(parse::winnow::version(input)).unwrap())
+        });
+        group.bench_function("version-parse", |b| {
+            b.iter(|| black_box(Version::try_new(input)).unwrap())
+        });
+    }
+
+    // cpv
+    {
+        let mut group = c.benchmark_group("cpv");
+        let input = "cat/pkg-1.2.3-r4";
+        group.throughput(Throughput::Bytes(input.len() as u64));
+        group.bench_function("cpv-winnow-parse", |b| {
+            b.iter(|| black_box(parse::winnow::cpv(input)).unwrap())
+        });
+        group.bench_function("cpv-parse", |b| {
+            b.iter(|| black_box(Cpv::try_new(input)).unwrap())
+        });
+    }
 
     c.bench_function("dep-parse", |b| {
         b.iter(|| Dep::try_new(">=cat/pkg-1.2.3-r4:5/6=[a,-b,c?]"))

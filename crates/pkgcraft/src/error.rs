@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::io;
 
 use serde::{Deserialize, Serialize};
+use winnow::error::{ContextError, ParseError};
 
 use crate::dep::{Cpn, Cpv, Uri};
 use crate::fetch::Fetchable;
@@ -16,6 +17,8 @@ pub(crate) use self::peg::peg_error;
     Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, thiserror::Error,
 )]
 pub enum Error {
+    #[error("{0}")]
+    Parse(String),
     #[error("{0}")]
     PegParse(String),
     #[error("config error: {0}")]
@@ -120,6 +123,13 @@ impl Error {
             repo: repo.to_string(),
             err: Box::new(self),
         }
+    }
+}
+
+impl From<ParseError<&[u8], ContextError>> for Error {
+    fn from(err: ParseError<&[u8], ContextError>) -> Self {
+        // .to_string() is the easiest way to capture the formatted error
+        Error::Parse(err.to_string())
     }
 }
 
