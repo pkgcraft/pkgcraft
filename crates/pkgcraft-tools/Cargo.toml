@@ -28,7 +28,7 @@ anstream = "1.0.0"
 anyhow = "1.0.102"
 camino = "1.2.2"
 clap = { version = "4.6.1", features = ["derive"] }
-clap_complete = "4.6.3"
+clap_complete = "4.6.4"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.8"
 futures = "0.3.32"
@@ -44,7 +44,7 @@ rayon = "1.12.0"
 reqwest = { version = "0.13.3", features = ["hickory-dns", "socks", "stream"] }
 strum = { version = "0.28.0", features = ["derive"] }
 tempfile = "3.27.0"
-tokio = { version = "1.52.1", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 tracing = "0.1.44"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.23"
