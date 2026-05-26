@@ -1,4 +1,4 @@
-use cached::{SizedCache, proc_macro::cached};
+use cached::{LruCache, macros::cached};
 
 use crate::dep::cpn::Cpn;
 use crate::dep::cpv::{Cpv, CpvOrDep};
@@ -390,8 +390,8 @@ pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
 }
 
 #[cached(
-    ty = "SizedCache<(String, &Eapi), crate::Result<Dep>>",
-    create = "{ SizedCache::with_size(1000) }",
+    ty = "LruCache<(String, &Eapi), crate::Result<Dep>>",
+    create = "{ LruCache::with_size(1000) }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {

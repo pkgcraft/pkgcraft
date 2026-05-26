@@ -28,7 +28,7 @@ anstream = "1.0.0"
 anyhow = "1.0.102"
 camino = "1.2.2"
 clap = { version = "4.6.1", features = ["derive"] }
-clap_complete = "4.6.4"
+clap_complete = "4.6.5"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.8"
 futures = "0.3.32"
@@ -41,7 +41,7 @@ num_cpus = "1.17.0"
 owo-colors = "4.3.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
 rayon = "1.12.0"
-reqwest = { version = "0.13.3", features = ["hickory-dns", "socks", "stream"] }
+reqwest = { version = "0.13.4", features = ["hickory-dns", "socks", "stream"] }
 strum = { version = "0.28.0", features = ["derive"] }
 tempfile = "3.27.0"
 tokio = { version = "1.52.3", features = ["full"] }
@@ -60,7 +60,7 @@ globset = "0.4.18"
 tabled = { version = "0.20.0", features = ["ansi"] }
 
 [dev-dependencies]
-assert_cmd = { version = "2.2.1" }
+assert_cmd = { version = "2.2.2" }
 pkgcraft = { path = "../pkgcraft", version = "0.0.31", features = ["test"] }
 predicates = "3.1.4"
 pretty_assertions = "1.4.1"

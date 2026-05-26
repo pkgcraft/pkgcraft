@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 /// Initialization for all test executables.
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn initialize() {
     // initialize bash
     crate::shell::init(crate::shell::Env::new());

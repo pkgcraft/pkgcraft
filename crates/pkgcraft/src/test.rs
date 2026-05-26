@@ -38,7 +38,7 @@ macro_rules! define_cmd {
 pub use define_cmd;
 
 /// Initialization for test executables.
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn initialize() {
     // initialize shell for internal tests
     #[cfg(test)]
