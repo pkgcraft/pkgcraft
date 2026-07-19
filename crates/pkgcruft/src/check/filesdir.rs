@@ -132,15 +132,13 @@ fn expand_node<'a>(
     for x in nodes {
         match x.kind() {
             "expansion" | "simple_expansion" | "variable_name" => {
-                match expand_var(pkg, x, cursor, filesdir) {
-                    Ok(value) => path.push_str(&value),
-                    Err(e) => return Err(e),
-                }
+                let value = expand_var(pkg, x, cursor, filesdir)?;
+                path.push_str(&value)
             }
-            "string" => match expand_node(pkg, x, cursor, filesdir) {
-                Ok(value) => path.push_str(&value),
-                Err(e) => return Err(e),
-            },
+            "string" => {
+                let value = expand_node(pkg, x, cursor, filesdir)?;
+                path.push_str(&value)
+            }
             "word" | "string_content" | "number" => path.push_str(x.as_str()),
             "\"" | "${" | "}" => continue,
             kind => {

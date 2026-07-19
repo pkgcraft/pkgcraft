@@ -25,7 +25,7 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
 
     c.bench_function("dep-long-usedeps", |b| {
         let flags: Vec<String> = (0..100).map(|s| s.to_string()).collect();
-        let s = format!("cat/pkg[{}]", &flags.join(","));
+        let s = format!("cat/pkg[{}]", flags.join(","));
         b.iter(|| Dep::try_new(&s));
     });
 

@@ -241,15 +241,11 @@ impl Iterator for IterCpn {
                 // determine which category to iterate through
                 let (category, packages) = match cat_packages {
                     Some(value) => value,
-                    None => match categories.find(|cat| cat_restrict.matches(cat)) {
-                        // populate packages iterator using the matching category
-                        Some(category) => {
-                            let set = repo.packages(&category);
-                            cat_packages.insert((category, set.into_iter()))
-                        }
-                        // no categories left to search
-                        None => return None,
-                    },
+                    None => {
+                        let category = categories.find(|cat| cat_restrict.matches(cat))?;
+                        let set = repo.packages(&category);
+                        cat_packages.insert((category, set.into_iter()))
+                    }
                 };
 
                 // look for matching packages in the selected category
@@ -393,15 +389,11 @@ impl Iterator for IterCpv {
                 // determine which category to iterate through
                 let cpvs = match cat_cpvs {
                     Some(iter) => iter,
-                    None => match categories.find(|cat| cat_restrict.matches(cat)) {
-                        // populate cpvs iterator using the matching category
-                        Some(category) => {
-                            let set = repo.cpvs_from_category(&category);
-                            cat_cpvs.insert(set.into_iter())
-                        }
-                        // no categories left to search
-                        None => return None,
-                    },
+                    None => {
+                        let category = categories.find(|cat| cat_restrict.matches(cat))?;
+                        let set = repo.cpvs_from_category(&category);
+                        cat_cpvs.insert(set.into_iter())
+                    }
                 };
 
                 // look for matching cpvs in the selected category

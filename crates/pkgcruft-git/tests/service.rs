@@ -47,7 +47,7 @@ async fn tcp() {
             .spawn()
             .await
             .unwrap();
-        let url = format!("http://{}", &service.socket);
+        let url = format!("http://{}", service.socket);
 
         let ver = env!("CARGO_PKG_VERSION");
         let expected = format!("client: {ver}, server: {ver}\n");

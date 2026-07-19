@@ -233,11 +233,10 @@ impl<I: Iterator<Item = EbuildPkg>> Iterator for CpnPkgsIter<'_, I> {
                 } else {
                     self.pkgs.push(pkg);
                 }
-            } else if let Some(cpn) = self.prev_cpn.take() {
+            } else {
+                let cpn = self.prev_cpn.take()?;
                 let pkgs = std::mem::take(&mut self.pkgs);
                 return Some((cpn, pkgs));
-            } else {
-                return None;
             }
         }
     }

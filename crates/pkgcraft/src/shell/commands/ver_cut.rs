@@ -37,7 +37,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     end = cmp::min(end * 2, len);
 
     let mut stdout = stdout();
-    write!(stdout, "{}", &version_parts[start..end].join(""))?;
+    write!(stdout, "{}", version_parts[start..end].join(""))?;
     stdout.flush()?;
 
     Ok(ExecStatus::Success)

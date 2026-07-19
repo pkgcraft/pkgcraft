@@ -50,7 +50,7 @@ async fn test_tcp() {
         let (mut arcanist, socket) = arcanist::spawn(addr, Some(env), Some(args), Some(5))
             .await
             .unwrap();
-        let url = format!("http://{}", &socket);
+        let url = format!("http://{}", socket);
 
         let ver = env!("CARGO_PKG_VERSION");
         let expected = format!("client: pakt-{ver}, server: arcanist-{ver}");
