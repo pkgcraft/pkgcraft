@@ -390,8 +390,8 @@ pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
 }
 
 #[cached(
-    ty = "LruCache<(String, &Eapi), crate::Result<Dep>>",
-    create = "{ LruCache::with_size(1000) }",
+    ty = "LruCache<(String, &Eapi), Dep>",
+    create = "{ LruCache::builder().max_size(1000).build().unwrap() }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {

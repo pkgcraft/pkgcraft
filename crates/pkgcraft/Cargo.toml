@@ -25,7 +25,7 @@ test = ["dep:ctor", "dep:pretty_assertions", "scallop/test"]
 # temporarily use rc version for =digest-0.11.* support
 blake2 = "0.11.0-rc.6"
 blake3 = { version = "1.8.5", features = ["traits-preview"] }
-cached = "1.1.0"
+cached = "2.0.2"
 camino = { version = "1.2.2", features = ["serde1"] }
 camino-tempfile = "1.4.1"
 chic = "1.2.2"
