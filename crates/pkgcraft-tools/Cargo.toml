@@ -25,18 +25,18 @@ network = []
 [dependencies]
 aho-corasick = "1.1.4"
 anstream = "1.0.0"
-anyhow = "1.0.102"
-camino = "1.2.2"
-clap = { version = "4.6.1", features = ["derive"] }
-clap_complete = "4.6.5"
+anyhow = "1.0.104"
+camino = "1.2.4"
+clap = { version = "4.6.2", features = ["derive"] }
+clap_complete = "4.6.7"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.8"
-futures = "0.3.32"
-humantime = "2.3.0"
+futures = "0.3.33"
+humantime = "2.4.0"
 indexmap = { version = "2.14.0", features = ["rayon", "serde"] }
-indicatif = "0.18.4"
+indicatif = "0.18.6"
 indoc = "2.0.7"
-itertools = "0.14.0"
+itertools = "0.15.0"
 num_cpus = "1.17.0"
 owo-colors = "4.3.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
@@ -44,20 +44,20 @@ rayon = "1.12.0"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "socks", "stream"] }
 strum = { version = "0.28.0", features = ["derive"] }
 tempfile = "3.27.0"
-tokio = { version = "1.52.3", features = ["full"] }
+tokio = { version = "1.53.0", features = ["full"] }
 tracing = "0.1.44"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.23"
 
 # pk pkg source: CSV output support
 csv = "1.4.0"
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
 
 # pk pkg env: glob filter support
-globset = "0.4.18"
+globset = "0.4.19"
 
 # pk pkg showkw: tabular output support
-tabled = { version = "0.20.0", features = ["ansi"] }
+tabled = { version = "0.21.0", features = ["ansi"] }
 
 [dev-dependencies]
 assert_cmd = { version = "2.2.2" }
