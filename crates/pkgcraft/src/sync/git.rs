@@ -55,7 +55,7 @@ impl Syncable for Repo {
     async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
         let uri = self.uri.as_str();
-        let url = gix::url::parse(uri.into())
+        let url = gix::url::parse(uri)
             .map_err(|e| Error::RepoSync(format!("invalid repo URL: {uri}: {e}")))?;
 
         if let Ok(repo) = gix::open(path) {
