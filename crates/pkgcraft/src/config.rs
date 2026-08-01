@@ -257,8 +257,11 @@ impl Config {
         path: P,
         priority: i32,
     ) -> crate::Result<Repo> {
-        let r = Repo::from_path(name, path, priority)?;
-        self.add_repo(r)
+        let path = path.as_ref();
+        self.repos().get_path(path).cloned().or_else(|_| {
+            let r = Repo::from_path(name, path, priority)?;
+            self.add_repo(r)
+        })
     }
 
     /// Add local repo of a specific format from a filesystem path.
@@ -269,8 +272,21 @@ impl Config {
         priority: i32,
         format: RepoFormat,
     ) -> crate::Result<Repo> {
-        let r = format.from_path(name, path, priority)?;
-        self.add_repo(r)
+        let path = path.as_ref();
+        if let Ok(repo) = self.repos().get_path(path) {
+            if repo.format() == format {
+                Ok(repo.clone())
+            } else {
+                Err(Error::NotARepo {
+                    kind: format,
+                    id: path.to_string(),
+                    err: format!("{} repo format", repo.format()),
+                })
+            }
+        } else {
+            let r = format.from_path(name, path, priority)?;
+            self.add_repo(r)
+        }
     }
 
     /// Add local repo from a potentially nested filesystem path.
@@ -279,8 +295,11 @@ impl Config {
         path: P,
         priority: i32,
     ) -> crate::Result<Repo> {
-        let r = Repo::from_nested_path(path, priority)?;
-        self.add_repo(r)
+        let path = path.as_ref();
+        self.repos().get_nested_path(path).cloned().or_else(|_| {
+            let r = Repo::from_nested_path(path, priority)?;
+            self.add_repo(r)
+        })
     }
 
     /// Add local repo of a specific format from a potentially nested filesystem path.
@@ -291,12 +310,24 @@ impl Config {
         format: RepoFormat,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        match format.from_nested_path(path, priority) {
-            Err(Error::NotARepo { .. }) => {
-                Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
+        if let Ok(repo) = self.repos().get_nested_path(path) {
+            if repo.format() == format {
+                Ok(repo.clone())
+            } else {
+                Err(Error::NotARepo {
+                    kind: format,
+                    id: path.to_string(),
+                    err: format!("{} repo format", repo.format()),
+                })
             }
-            Err(e) => Err(e),
-            Ok(r) => self.add_repo(r),
+        } else {
+            match format.from_nested_path(path, priority) {
+                Err(Error::NotARepo { .. }) => {
+                    Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
+                }
+                Err(e) => Err(e),
+                Ok(r) => self.add_repo(r),
+            }
         }
     }
 

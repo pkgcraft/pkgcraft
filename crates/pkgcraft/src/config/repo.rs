@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::Write;
 use std::{fmt, fs};
 
@@ -167,6 +168,7 @@ pub struct ConfigRepos {
     repos: IndexMap<String, Repo>,
     configured: IndexSet<Repo>,
     nonexistent: IndexMap<String, RepoConfig>,
+    paths: HashMap<Utf8PathBuf, String>,
 }
 
 impl ConfigRepos {
@@ -328,6 +330,28 @@ impl ConfigRepos {
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent repo: {id}")))
     }
 
+    /// Return the repo related to a path if it exists.
+    pub(super) fn get_path<P: AsRef<Utf8Path>>(&self, path: P) -> crate::Result<&Repo> {
+        let path = path.as_ref();
+        let canonical_path = path.canonicalize_utf8()?;
+        let id = self
+            .paths
+            .get(&canonical_path)
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent repo: {path}")))?;
+        self.get(id)
+    }
+
+    /// Return the repo related to a nested path if it exists.
+    pub(super) fn get_nested_path<P: AsRef<Utf8Path>>(&self, path: P) -> crate::Result<&Repo> {
+        let path = path.as_ref();
+        let canonical_path = path.canonicalize_utf8()?;
+        self.paths
+            .iter()
+            .find(|(p, _)| canonical_path.starts_with(p))
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent repo: {path}")))
+            .and_then(|(_, id)| self.get(id))
+    }
+
     /// Return the ebuild repo to an identifier if it exists.
     pub(crate) fn get_ebuild<S: AsRef<str>>(&self, id: S) -> crate::Result<&EbuildRepo> {
         let id = id.as_ref();
@@ -362,10 +386,16 @@ impl ConfigRepos {
         }
 
         for (_name, repo) in &new_repos {
-            // create configured ebuild repos
             if let Repo::Ebuild(r) = repo {
+                // create configured ebuild repos
                 let configured = r.configure();
                 self.configured.insert(configured.into());
+
+                // add mappings for repo path to repo id
+                self.paths.insert(r.path().into(), r.id().into());
+                if let Ok(canonical_path) = r.path().canonicalize_utf8() {
+                    self.paths.insert(canonical_path, r.id().into());
+                }
             }
         }
 
