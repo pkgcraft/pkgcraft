@@ -391,10 +391,9 @@ impl ConfigRepos {
                 let configured = r.configure();
                 self.configured.insert(configured.into());
 
-                // add mappings for repo path to repo id
-                self.paths.insert(r.path().into(), r.id().into());
-                if let Ok(canonical_path) = r.path().canonicalize_utf8() {
-                    self.paths.insert(canonical_path, r.id().into());
+                // add canonical repo path to repo id mapping
+                if let Ok(path) = r.path().canonicalize_utf8() {
+                    self.paths.insert(path, r.id().into());
                 }
             }
         }
