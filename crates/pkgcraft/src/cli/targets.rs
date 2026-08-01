@@ -181,14 +181,12 @@ impl<'a> Targets<'a> {
                     Error::InvalidValue(format!("invalid path target: {target}: {e}"))
                 });
 
-            // try determining target repo from path target if it doesn't exist yet
-            let repo_target = match self.target_repo.as_ref() {
-                Some(repo) => Some(Ok(repo.clone())),
-                None => path_target
-                    .as_ref()
-                    .ok()
-                    .map(|_| self.repo_from_nested_path(s)),
-            };
+            // determine if the path target is a repo
+            let repo_target = path_target
+                .as_ref()
+                .ok()
+                .map(|_| self.repo_from_nested_path(s))
+                .or_else(|| self.target_repo.as_ref().map(|r| Ok(r.clone())));
 
             match (restrict::parse::dep(s), path_target, repo_target) {
                 (_, Ok(path), Some(Ok(repo))) => {
@@ -543,6 +541,15 @@ mod tests {
             .unwrap();
         assert_eq!(targets.len(), 1);
         assert_eq!(targets.len_pkgs(), 2);
+        // single target repo path overrides current working directory repo
+        let targets = Targets::new(&mut config)
+            .unwrap()
+            .repo(none)
+            .unwrap()
+            .pkg_targets([ebuild_repo.path()])
+            .unwrap();
+        assert_eq!(targets.len(), 1);
+        assert_eq!(targets.len_pkgs(), 1);
 
         // nonexistent repo ID
         let r = Targets::new(&mut config).unwrap().repo(Some("nonexistent"));
