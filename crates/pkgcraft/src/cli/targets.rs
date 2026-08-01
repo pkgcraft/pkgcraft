@@ -186,7 +186,7 @@ impl<'a> Targets<'a> {
                 .as_ref()
                 .ok()
                 .map(|_| self.repo_from_nested_path(s))
-                .or_else(|| self.target_repo.as_ref().map(|r| Ok(r.clone())));
+                .or_else(|| self.target_repo.clone().map(Ok));
 
             match (restrict::parse::dep(s), path_target, repo_target) {
                 (_, Ok(path), Some(Ok(repo))) => {
