@@ -118,9 +118,9 @@ pub enum IterCpn {
 
     /// Matches with package restriction
     Package {
-        packages: indexmap::set::IntoIter<String>,
         category: String,
-        restrict: Restrict,
+        packages: indexmap::set::IntoIter<String>,
+        pkg_restrict: Restrict,
     },
 
     /// Matches with category restriction
@@ -180,8 +180,12 @@ impl IterCpn {
             ([Equal(cat)], _) => {
                 let category = mem::take(cat);
                 let packages = repo.packages(&category).into_iter();
-                let restrict = Restrict::and(pkg_restricts);
-                Self::Package { packages, category, restrict }
+                let pkg_restrict = Restrict::and(pkg_restricts);
+                Self::Package {
+                    category,
+                    packages,
+                    pkg_restrict,
+                }
             }
             (_, [Equal(pn)]) => {
                 let package = mem::take(pn);
@@ -219,12 +223,14 @@ impl Iterator for IterCpn {
         match self {
             Self::Empty => None,
             Self::Exact(iter) => iter.next(),
-            Self::Package { packages, category, restrict } => {
-                packages.find(|pn| restrict.matches(pn)).map(|pn| Cpn {
-                    category: category.clone(),
-                    package: pn,
-                })
-            }
+            Self::Package {
+                category,
+                packages,
+                pkg_restrict,
+            } => packages.find(|pn| pkg_restrict.matches(pn)).map(|pn| Cpn {
+                category: category.clone(),
+                package: pn,
+            }),
             Self::Category { categories, package, repo } => categories
                 .map(|category| Cpn {
                     category,
@@ -275,16 +281,6 @@ pub enum IterCpv {
     /// Matches with version restriction
     Version {
         iter: std::vec::IntoIter<Cpv>,
-        restrict: Restrict,
-    },
-
-    /// Matches with custom restrictions
-    Custom {
-        categories: indexmap::set::IntoIter<String>,
-        cat_cpvs: Option<indexmap::set::IntoIter<Cpv>>,
-        repo: EbuildRepo,
-        cat_restrict: Restrict,
-        pkg_restrict: Restrict,
         ver_restrict: Restrict,
     },
 }
@@ -329,19 +325,19 @@ impl IterCpv {
                     .unwrap_or(Self::Empty)
             }
             ([Category(Equal(cat))], [Package(Equal(pn))], _) => {
-                let restrict = Restrict::and(ver_restricts);
+                let ver_restrict = Restrict::and(ver_restricts);
                 let cpvs = repo
                     .cpvs_from_package(cat, pn)
                     .filter_map(Result::ok)
                     .collect::<Vec<_>>();
                 Self::Version {
                     iter: cpvs.into_iter(),
-                    restrict,
+                    ver_restrict,
                 }
             }
             ([], [Package(Equal(pn))], _) => {
                 let pn = mem::take(pn);
-                let restrict = Restrict::and(ver_restricts);
+                let ver_restrict = Restrict::and(ver_restricts);
                 let cpvs = repo
                     .categories()
                     .into_iter()
@@ -350,19 +346,23 @@ impl IterCpv {
                     .collect::<Vec<_>>();
                 Self::Version {
                     iter: cpvs.into_iter(),
-                    restrict,
+                    ver_restrict,
                 }
             }
             _ => {
-                let cat_restrict = Restrict::and(cat_restricts);
-                let pkg_restrict = Restrict::and(pkg_restricts);
+                let restricts: Vec<_> =
+                    cat_restricts.into_iter().chain(pkg_restricts).collect();
+                let cpn_restrict = Restrict::and(restricts);
                 let ver_restrict = Restrict::and(ver_restricts);
-                Self::Custom {
-                    categories: repo.categories().into_iter(),
-                    cat_cpvs: None,
-                    repo: repo.clone(),
-                    cat_restrict,
-                    pkg_restrict,
+
+                let cpvs = repo
+                    .iter_cpn_restrict(cpn_restrict)
+                    .flat_map(|cpn| repo.cpvs_from_package(&cpn.category, &cpn.package))
+                    .filter_map(Result::ok)
+                    .collect::<Vec<_>>();
+
+                Self::Version {
+                    iter: cpvs.into_iter(),
                     ver_restrict,
                 }
             }
@@ -377,35 +377,7 @@ impl Iterator for IterCpv {
         match self {
             Self::Empty => None,
             Self::Exact(iter) => iter.next(),
-            Self::Version { iter, restrict } => iter.find(|cpv| restrict.matches(cpv)),
-            Self::Custom {
-                categories,
-                cat_cpvs,
-                repo,
-                cat_restrict,
-                pkg_restrict,
-                ver_restrict,
-            } => loop {
-                // determine which category to iterate through
-                let cpvs = match cat_cpvs {
-                    Some(iter) => iter,
-                    None => {
-                        let category = categories.find(|cat| cat_restrict.matches(cat))?;
-                        let set = repo.cpvs_from_category(&category);
-                        cat_cpvs.insert(set.into_iter())
-                    }
-                };
-
-                // look for matching cpvs in the selected category
-                if let Some(cpv) =
-                    cpvs.find(|cpv| pkg_restrict.matches(cpv) && ver_restrict.matches(cpv))
-                {
-                    return Some(cpv);
-                }
-
-                // reset category cpvs iterator
-                cat_cpvs.take();
-            },
+            Self::Version { iter, ver_restrict } => iter.find(|cpv| ver_restrict.matches(cpv)),
         }
     }
 }
