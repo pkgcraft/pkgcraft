@@ -1,17 +1,18 @@
 use cached::{LruCache, macros::cached};
 
-use crate::dep::cpn::Cpn;
-use crate::dep::cpv::{Cpv, CpvOrDep};
-use crate::dep::pkg::{Blocker, Dep, Slot, SlotDep, SlotOperator};
-use crate::dep::uri::Uri;
-use crate::dep::use_dep::{UseDep, UseDepKind};
-use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
-use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::pkg::ebuild::iuse::Iuse;
 use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
 use crate::types::Ordered;
+
+use super::cpn::Cpn;
+use super::cpv::{Cpv, CpvOrDep};
+use super::pkg::{Blocker, Dep, Slot, SlotDep, SlotOperator};
+use super::uri::Uri;
+use super::use_dep::{UseDep, UseDepKind};
+use super::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
+use super::{Dependency, DependencySet};
 
 peg::parser!(grammar depspec() for str {
     // Arches must not begin with a hyphen.
