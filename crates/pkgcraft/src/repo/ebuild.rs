@@ -8,11 +8,7 @@ mod temp;
 
 pub use self::cache::{Cache, CacheEntry, CacheFormat, MetadataCache};
 pub use self::eclass::Eclass;
-pub use self::iter::{
-    Iter, IterCpn, IterCpnRestrict, IterCpv, IterCpvRestrict, IterOrdered, IterRaw,
-    IterRawOrdered, IterRawRestrict, IterRawRestrictOrdered, IterRestrict,
-    IterRestrictOrdered, IterUnordered,
-};
+pub use self::iter::*;
 pub use self::metadata::{Metadata, Mirror};
 pub use self::revdeps::RevDepCache;
 pub use self::temp::{EbuildRepoBuilder, EbuildTempRepo};
