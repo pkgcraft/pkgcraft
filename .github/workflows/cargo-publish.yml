@@ -105,7 +105,9 @@ jobs:
         key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+      with:
+        toolchain: stable
 
     - name: Install protoc
       uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10

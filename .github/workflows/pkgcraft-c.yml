@@ -20,7 +20,9 @@ jobs:
         submodules: true
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+      with:
+        toolchain: stable
 
     - name: Create vendored release tarball
       run: |
@@ -52,7 +54,9 @@ jobs:
       run: echo build_dir=~/pkgcraft-c >> $GITHUB_ENV
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+      with:
+        toolchain: stable
 
     - name: Install cargo-c via binary package on Linux
       if: runner.os == 'Linux'

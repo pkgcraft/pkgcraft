@@ -20,7 +20,9 @@ jobs:
         submodules: true
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+      with:
+        toolchain: stable
 
     - name: Install protoc for arcanist
       uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10
@@ -59,7 +61,9 @@ jobs:
         submodules: true
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+      with:
+        toolchain: stable
 
     - name: Install cross
       run: cargo install cross --git https://github.com/cross-rs/cross
