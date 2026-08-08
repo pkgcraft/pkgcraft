@@ -216,6 +216,9 @@ impl Phase {
         // initialize phase scope variables
         build.set_vars()?;
 
+        // initialize phase scope directories
+        build.create_dirs()?;
+
         // determine the initialize working directory
         let path = if let Some(var) = &self.initial_working_directory {
             build.env(var).into()

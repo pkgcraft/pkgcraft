@@ -20,8 +20,6 @@ impl Build for EbuildPkg {
             err.into_invalid_pkg_err(self)
         })?;
 
-        build.create_dirs()?;
-
         for phase in self.eapi().operation(OperationKind::Build) {
             phase.run().map_err(|e| {
                 let err: crate::Error = e.into();
@@ -59,6 +57,9 @@ impl PkgPretend for EbuildPkg {
 
         // initialize phase scope variables
         build.set_vars()?;
+
+        // initialize phase scope directories
+        build.create_dirs()?;
 
         // redirect pkg_pretend() output to a temporary file
         let mut file =

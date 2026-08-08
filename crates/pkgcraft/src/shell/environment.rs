@@ -508,8 +508,6 @@ mod tests {
             temp.create_ebuild_from_str("cat/pkg-1-r2", &data).unwrap();
             let pkg = repo.get_pkg("cat/pkg-1-r2").unwrap();
             pkg.source().unwrap();
-            // TODO: move this create_dirs() call somewhere more apt
-            get_build_mut().create_dirs().unwrap();
             for phase in eapi.phases() {
                 let r = phase.run();
                 assert!(r.is_ok(), "EAPI {eapi}: failed running {phase}: {}", r.unwrap_err());
