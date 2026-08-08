@@ -26,12 +26,12 @@ git = ["pkgcraft/git"]
 network = []
 
 [dependencies]
-aho-corasick = "1.1.4"
+aho-corasick = "1.1.5"
 anstream = "1.0.0"
 anyhow = "1.0.104"
-camino = "1.2.4"
-clap = { version = "4.6.4", features = ["derive"] }
-clap_complete = "4.6.7"
+camino = "1.2.5"
+clap = { version = "4.6.6", features = ["derive"] }
+clap_complete = "4.6.9"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.8"
 futures = "0.3.33"
@@ -57,7 +57,7 @@ csv = "1.4.0"
 serde = { version = "1.0.229", features = ["derive"] }
 
 # pk pkg env: glob filter support
-globset = "0.4.19"
+globset = "0.4.20"
 
 # pk pkg showkw: tabular output support
 tabled = { version = "0.21.0", features = ["ansi"] }

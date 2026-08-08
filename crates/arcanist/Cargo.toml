@@ -14,7 +14,7 @@ rust-version.workspace = true
 [dependencies]
 anyhow = "1.0.104"
 async-stream = "0.3.6"
-clap = { version = "4.6.4", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.6.6", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.15.25", default-features = false, features = ["toml"] }
 futures = "0.3.33"
 hyper-util = "0.1.20"
@@ -22,7 +22,7 @@ pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
 prost = "0.14.4"
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
-thiserror = "2.0.19"
+thiserror = "2.0.20"
 tokio = { version = "1.53", features = ["full"] }
 tokio-stream = { version = "0.1.19", features = ["net"] }
 tonic = { version = "0.14.6", features = ["tls-ring", "gzip"] }
