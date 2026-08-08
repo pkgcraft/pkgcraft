@@ -19,6 +19,9 @@ name = "pk"
 path = "src/main.rs"
 
 [features]
+default = ["git"]
+# git repo support
+git = ["pkgcraft/git"]
 # network tests that aren't run by default
 network = []
 
@@ -39,7 +42,7 @@ indoc = "2.0.7"
 itertools = "0.15.0"
 num_cpus = "1.17.0"
 owo-colors = "4.3.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.31", default-features = false }
 rayon = "1.12.0"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "socks", "stream"] }
 strum = { version = "0.28.0", features = ["derive"] }

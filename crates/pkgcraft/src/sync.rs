@@ -8,12 +8,14 @@ use tracing::debug;
 
 use crate::Error;
 
+#[cfg(feature = "git")]
 mod git;
 mod local;
 mod tar;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
 pub(crate) enum Syncer {
+    #[cfg(feature = "git")]
     Git(git::Repo),
     Local(local::Repo),
     TarHttps(tar::Repo),
@@ -22,6 +24,7 @@ pub(crate) enum Syncer {
 impl fmt::Display for Syncer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            #[cfg(feature = "git")]
             Syncer::Git(repo) => write!(f, "{repo}"),
             Syncer::TarHttps(repo) => write!(f, "{repo}"),
             Syncer::Local(repo) => write!(f, "{repo}"),
@@ -40,6 +43,7 @@ trait Syncable: fmt::Display + fmt::Debug + Sized {
 impl Syncer {
     pub(crate) fn fallback_name(&self) -> Option<String> {
         match self {
+            #[cfg(feature = "git")]
             Syncer::Git(repo) => repo.fallback_name(),
             Syncer::TarHttps(repo) => repo.fallback_name(),
             Syncer::Local(repo) => repo.fallback_name(),
@@ -55,6 +59,7 @@ impl Syncer {
             .map_err(|e| Error::RepoSync(format!("failed creating repos dir: {dir}: {e}")))?;
 
         match self {
+            #[cfg(feature = "git")]
             Syncer::Git(repo) => repo.sync(path).await,
             Syncer::TarHttps(repo) => repo.sync(path).await,
             Syncer::Local(repo) => repo.sync(path).await,
@@ -62,6 +67,7 @@ impl Syncer {
     }
     pub(crate) fn remove<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
         match self {
+            #[cfg(feature = "git")]
             Syncer::Git(repo) => repo.remove(path),
             Syncer::TarHttps(repo) => repo.remove(path),
             Syncer::Local(repo) => repo.remove(path),
@@ -75,6 +81,7 @@ impl FromStr for Syncer {
     fn from_str(s: &str) -> crate::Result<Self> {
         #[rustfmt::skip]
         let syncers = [
+            #[cfg(feature = "git")]
             |uri| git::Repo::uri_to_syncer(uri).map(Syncer::Git),
             |uri| tar::Repo::uri_to_syncer(uri).map(Syncer::TarHttps),
             |uri| local::Repo::uri_to_syncer(uri).map(Syncer::Local),

@@ -62,7 +62,7 @@ fn local_repo() {
 }
 
 #[test]
-#[cfg(feature = "network")]
+#[cfg(all(feature = "git", feature = "network"))]
 fn git_repo() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().to_str().unwrap();
