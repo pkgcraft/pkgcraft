@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
       with:
         submodules: true
 
@@ -31,7 +31,7 @@ jobs:
       id: rust
 
     - name: Restore cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
       id: restore-cache
       with:
         path: |
@@ -87,7 +87,7 @@ jobs:
         echo "DYLD_LIBRARY_PATH=${pkgcraft_dir}" >> $GITHUB_ENV
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
       with:
         name: pkgcraft-c-${{ runner.os }}
         path: pkgcraft-c.tar.xz
@@ -95,7 +95,7 @@ jobs:
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
       with:
         path: |
           ~/.cargo/bin

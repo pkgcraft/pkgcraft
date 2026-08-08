@@ -24,7 +24,7 @@ jobs:
       version: ${{ steps.msrv.outputs.version }}
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
 
     - name: Get the minimum supported rust version (MSRV)
       id: msrv
@@ -55,7 +55,7 @@ jobs:
     steps:
     - name: Free disk space for coverage data
       if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
-      uses: jlumbroso/free-disk-space@main
+      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be #main
       timeout-minutes: 5
       with:
         android: true
@@ -67,7 +67,7 @@ jobs:
         swap-storage: false
 
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
       with:
         submodules: true
 
@@ -91,7 +91,7 @@ jobs:
         echo "/opt/homebrew/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
 
     - name: Restore cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
       id: restore-cache
       with:
         path: |
@@ -126,7 +126,9 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install protoc for arcanist
-      uses: taiki-e/install-action@protoc
+      uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10
+      with:
+        tool: protoc
 
     - name: Build tests
       run: |
@@ -147,7 +149,7 @@ jobs:
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
       with:
         path: |
           ~/.cargo/registry/index
@@ -158,10 +160,14 @@ jobs:
 
     - name: Install grcov
       if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
-      uses: taiki-e/install-action@grcov
+      uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10
+      with:
+        tool: grcov
 
     - name: Install cargo-nextest
-      uses: taiki-e/install-action@nextest
+      uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10
+      with:
+        tool: nextest
 
     - name: Run tests
       id: test
@@ -218,7 +224,7 @@ jobs:
 
     - name: Upload coverage artifacts
       if: ${{ steps.test.outputs.coverage == 'true' }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
       with:
         name: coverage
         path: coverage
@@ -227,7 +233,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ steps.test.outputs.coverage == 'true' }}
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f #v7.0.0
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: coverage/lcov
