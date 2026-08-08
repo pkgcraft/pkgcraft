@@ -8,6 +8,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use scallop::{Error, ExecStatus, builtins, functions, source, variables};
+use uuid::Uuid;
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
@@ -80,7 +81,8 @@ impl Drop for Scoped {
 pub(crate) struct BuildData {
     state: BuildState,
 
-    /// path to the base build directory
+    // TODO: add drop support to wipe the directory if it exists
+    /// working directory path for a package
     dir: OnceLock<Utf8PathBuf>,
 
     /// nonfatal status set by the related builtin
@@ -272,7 +274,14 @@ impl BuildData {
     fn dir(&self) -> &Utf8Path {
         self.dir.get_or_init(|| {
             // TODO: replace tempdir with path pulled from config
-            let tmpdir = std::env::temp_dir();
+            let mut tmpdir = std::env::temp_dir().join("pkgcraft");
+
+            // use unique tempdir to avoid test collisions
+            if cfg!(test) {
+                let id = Uuid::new_v4();
+                tmpdir.push(id.to_string());
+            }
+
             let tmpdir = tmpdir.to_str().expect("non-unicode system tempdir");
             let cpv = self.cpv();
             build_path!(tmpdir, cpv.category(), cpv.pf())
