@@ -126,7 +126,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install protoc for arcanist
-      uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10
+      uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 #v2.86.5
       with:
         tool: protoc
 
@@ -160,12 +160,12 @@ jobs:
 
     - name: Install grcov
       if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
-      uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10
+      uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 #v2.86.5
       with:
         tool: grcov
 
     - name: Install cargo-nextest
-      uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad #v2.85.10
+      uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 #v2.86.5
       with:
         tool: nextest
 
