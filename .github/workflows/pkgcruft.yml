@@ -127,9 +127,36 @@ jobs:
         if-no-files-found: error
         retention-days: 1
 
+  macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+
+    - name: Set up rust toolchain
+      uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+      with:
+        toolchain: stable
+
+    - name: Build binary
+      run: cargo build --profile release-strip -p pkgcruft
+
+    - name: Create archive
+      run: |
+        cd target/release-strip
+        zip $GITHUB_WORKSPACE/${{ github.ref_name }}-macos.zip pkgcruft
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ github.ref_name }}-macos
+        path: ${{ github.ref_name }}-macos.zip
+        if-no-files-found: error
+        retention-days: 1
+
   publish:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [source, linux]
+    needs: [source, linux, macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -144,5 +171,7 @@ jobs:
     - name: Create GitHub release
       uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 #v3.0.2
       with:
-        files: artifacts/*.tar.xz
+        files: |
+          artifacts/*.tar.xz
+          artifacts/${{ github.ref_name }}-macos.zip
         fail_on_unmatched_files: true
