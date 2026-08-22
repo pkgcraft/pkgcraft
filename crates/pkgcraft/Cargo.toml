@@ -27,7 +27,7 @@ test = ["dep:ctor", "dep:pretty_assertions", "scallop/test"]
 [dependencies]
 # temporarily use rc version for =digest-0.11.* support
 blake2 = "0.11.0-rc.6"
-blake3 = { version = "1.8.6", features = ["traits-preview"] }
+blake3 = { version = "1.8.7", features = ["traits-preview"] }
 cached = "2.0.2"
 camino = { version = "1.2.5", features = ["serde1"] }
 camino-tempfile = "1.4.1"
@@ -38,7 +38,7 @@ dashmap = "6.2.1"
 digest = "0.11.3"
 enum-as-inner = "0.7.0"
 filetime = "0.2.29"
-futures = "0.3.33"
+futures = "0.3.34"
 gix = { version = "0.86.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation", "sha1", "sha256"], optional = true }
 glob = "0.3.4"
 hex = "0.4.3"
@@ -61,7 +61,7 @@ roxmltree = "0.21.1"
 rust-ini = "0.21.3"
 scallop = { path = "../scallop", version = "0.0.30" }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_with = { version = "3.21.0", default-features = false, features = ["macros"] }
+serde_with = { version = "3.22.0", default-features = false, features = ["macros"] }
 sha2 = "0.11.0"
 strum = { version = "0.28.0", features = ["derive"] }
 tempfile = "3.27.0"
@@ -72,16 +72,16 @@ tokio = { version = "1.53.1", features = ["full"] }
 toml = "1.1.4"
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
-uuid = { version = "1.24.0", features = ["v4", "v7", "fast-rng"] }
+uuid = { version = "1.24.1", features = ["v4", "v7", "fast-rng"] }
 walkdir = "2.5.0"
 
 # exported test support deps
-ctor = { version = "1.0.12", optional = true }
+ctor = { version = "1.0.13", optional = true }
 pretty_assertions = { version = "1.4.1", optional = true }
 
 [dev-dependencies]
 criterion = "0.8"
-ctor = "1.0.12"
+ctor = "1.0.13"
 scallop = { path = "../scallop", version = "0.0.30", features = ["test"] }
 serde_json = "1.0.151"
 tracing-test = "0.2.6"

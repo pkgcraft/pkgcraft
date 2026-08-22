@@ -24,7 +24,7 @@ clap = { version = "4.6.6", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.8"
 config = { version = "0.15.25", default-features = false, features = ["toml"] }
-futures = "0.3.33"
+futures = "0.3.34"
 git2 = "0.21.0"
 gix = { version = "0.86.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation", "sha1", "sha256"] }
 hyper-util = "0.1.20"

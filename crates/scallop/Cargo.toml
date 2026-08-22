@@ -48,11 +48,11 @@ autotools = "0.2.7"
 bindgen = "0.72.1"
 camino = "1.2.5"
 num_cpus = "1.17.0"
-pkg-config = "0.3.33"
+pkg-config = "0.3.34"
 regex = "1.13.1"
 
 [dev-dependencies]
-ctor = "1.0.12"
+ctor = "1.0.13"
 indoc = "2.0.7"
 regex = "1.13.1"
 tempfile = "3.27.0"
