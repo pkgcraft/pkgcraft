@@ -22,4 +22,8 @@ jobs:
       with:
         submodules: true
 
-    - uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 #v1.2.7
+    - name: Check dependencies
+      uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 #v2.1.1
+      with:
+        # restrict checks to security advisories
+        command: check advisories
