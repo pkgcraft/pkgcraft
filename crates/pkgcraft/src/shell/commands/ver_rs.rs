@@ -35,8 +35,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let len = version_parts.len();
 
     // iterate over (range, separator) pairs, altering the denoted separators as requested
-    let mut args_iter = cmd.args.chunks_exact(2);
-    while let Some([range, sep]) = args_iter.next() {
+    let (chunks, _) = cmd.args.as_chunks::<2>();
+    for [range, sep] in chunks {
         let (start, end) = parse::range(range, len / 2)?;
         (start..=end)
             .map(|i| i * 2)

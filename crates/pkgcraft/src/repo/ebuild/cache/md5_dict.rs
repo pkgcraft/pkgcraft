@@ -335,7 +335,7 @@ mod tests {
         "};
 
         let r = Md5DictEntry::from_str(data);
-        assert_err_re!(r, format!("^invalid md5-dict cache line: invalid data$"));
+        assert_err_re!(r, "^invalid md5-dict cache line: invalid data$");
 
         let data = indoc::indoc! {"
             DEFINED_PHASES=-
@@ -347,6 +347,6 @@ mod tests {
         "};
 
         let r = Md5DictEntry::from_str(data);
-        assert_err_re!(r, format!("^invalid md5-dict cache key: INVALID$"));
+        assert_err_re!(r, "^invalid md5-dict cache key: INVALID$");
     }
 }
