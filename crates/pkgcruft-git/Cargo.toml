@@ -26,9 +26,9 @@ colorchoice-clap = "1.0.8"
 config = { version = "0.15.25", default-features = false, features = ["toml"] }
 futures = "0.3.34"
 git2 = "0.21.0"
-gix = { version = "0.86.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation", "sha1", "sha256"] }
+gix = { version = "0.87.1", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation", "sha1", "sha256"] }
 hyper-util = "0.1.20"
-indexmap = "2.14.0"
+indexmap = "2.14.1"
 indoc = "2.0.7"
 itertools = "0.15.0"
 num_cpus = "1.17.0"
