@@ -116,9 +116,9 @@ fn single_repo() {
         .arg(&repo)
         .assert()
         .stdout(indoc::indoc! {"
-            repo
-              EAPI 7: 1 pkg
-              EAPI 8: 2 pkgs
+            EAPI 7:  1 pkg  (33.33%) [#################---------------------------------]
+            EAPI 8:  2 pkgs (66.67%) [#################################-----------------]
+             total:  3 pkgs
         "})
         .stderr("")
         .success();
@@ -166,10 +166,12 @@ fn multiple_repos() {
         .assert()
         .stdout(indoc::indoc! {"
             repo1
-              EAPI 7: 1 pkg
-              EAPI 8: 2 pkgs
+              EAPI 7:  1 pkg  (33.33%) [#################---------------------------------]
+              EAPI 8:  2 pkgs (66.67%) [#################################-----------------]
+               total:  3 pkgs
             repo2
-              EAPI 8: 1 pkg
+              EAPI 8:  1 pkg  (100.00%) [##################################################]
+               total:  1 pkg
         "})
         .stderr("")
         .success();
