@@ -53,7 +53,7 @@ jobs:
       run: .ci/vendor-release pkgcraft-tools
 
     - name: Install cargo-nextest
-      uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 #v2.86.5
+      uses: taiki-e/install-action@84f5ac3124727fb3d284d4d22ee9ab3654fd09a6 #v2.87.7
       with:
         tool: nextest
 
@@ -171,7 +171,7 @@ jobs:
         merge-multiple: true
 
     - name: Create GitHub release
-      uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 #v3.0.2
+      uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 #v3.0.3
       with:
         files: artifacts/*
         fail_on_unmatched_files: true

@@ -64,7 +64,7 @@ jobs:
       run: cargo fmt --check
 
     - name: Install protoc for arcanist
-      uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 #v2.86.5
+      uses: taiki-e/install-action@84f5ac3124727fb3d284d4d22ee9ab3654fd09a6 #v2.87.7
       with:
         tool: protoc
 
