@@ -23,7 +23,7 @@ prost = "0.14.4"
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2.0.21"
-tokio = { version = "1.53", features = ["full"] }
+tokio = { version = "1.54", features = ["full"] }
 tokio-stream = { version = "0.1.19", features = ["net"] }
 tonic = { version = "0.14.6", features = ["tls-ring", "gzip"] }
 tonic-prost = "0.14.6"
