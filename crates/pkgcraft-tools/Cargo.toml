@@ -57,7 +57,7 @@ csv = "1.4.0"
 serde = { version = "1.0.229", features = ["derive"] }
 
 # pk pkg env: glob filter support
-globset = "0.4.20"
+globset = "0.4.21"
 
 # pk pkg showkw: tabular output support
 tabled = { version = "0.22.0", features = ["ansi"] }
